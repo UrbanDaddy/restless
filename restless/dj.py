@@ -1,13 +1,19 @@
 import six
 
+from distutils.version import StrictVersion
+import django
 from django.conf import settings
-from django.conf.urls import patterns, url
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 
 from .exceptions import NotFound
 from .resources import Resource
+
+if StrictVersion(django.get_version()) >= StrictVersion('1.7.0'):
+    from django.conf.urls import url
+else:
+    from django.conf.urls import patterns, url
 
 
 class DjangoResource(Resource):
@@ -82,9 +88,14 @@ class DjangoResource(Resource):
             ``api_blogpost_list``
         :type name_prefix: string
 
-        :returns: A ``patterns`` object for ``include(...)``
+        :returns: A ``patterns`` object for ``include(...) or a list object``
         """
-        return patterns('',
+        urls = [
             url(r'^$', cls.as_list(), name=cls.build_url_name('list', name_prefix)),
             url(r'^(?P<pk>\d+)/$', cls.as_detail(), name=cls.build_url_name('detail', name_prefix)),
-        )
+        ]
+
+        if StrictVersion(django.get_version()) >= StrictVersion('1.7.0'):
+            return urls
+        else:
+            return patterns('', urls[0], urls[1])
